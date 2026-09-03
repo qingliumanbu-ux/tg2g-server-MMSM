@@ -1,0 +1,113 @@
+/*************************************************
+Copyright: Baosight Software LTD.co Copyright (c) 2010
+Author:   夏梦影
+Version:    1.0
+Date:     2024
+Description: 不锈钢全线消耗
+***********************************************************************/
+
+/***** C++ 的标准头文件部分 *****/
+#include "stdafx.h"
+
+// service入口
+BM2F_ENTERACE(mmsmts_inq)
+
+int f_mmsmts_inq(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn)
+{
+	CTracer log(__FUNCTION__);
+
+	/* ***** 自定义变量 ***** */
+	int doFlag = 0;
+
+	CString sqlstr = "";
+	CString sqlstr_count = " ";
+	CString sqlstr_temp = " ";
+	CString sql_group = " ";
+	CString end_time = " ";
+	CString end_time_1 = " ";
+	CString heat_no = " ";
+	CString st_no = " ";
+
+	CDbCommand cmd_inq(conn);
+
+	try
+	{
+		if (bcls_rec->Tables[0].Columns.Contains("END_TIME"))
+			end_time = bcls_rec->Tables[0].Rows[0]["END_TIME"].ToString().SubstringNE(0, 8);
+		if (bcls_rec->Tables[0].Columns.Contains("END_TIME_1"))
+			end_time_1 = bcls_rec->Tables[0].Rows[0]["END_TIME_1"].ToString().SubstringNE(0, 8);
+		if (bcls_rec->Tables[0].Columns.Contains("HEAT_NO"))
+			heat_no = bcls_rec->Tables[0].Rows[0]["HEAT_NO"].ToString().TrimOrBlank().ToUpper();
+		if (bcls_rec->Tables[0].Columns.Contains("ST_NO"))
+			st_no = bcls_rec->Tables[0].Rows[0]["ST_NO"].ToString().TrimOrBlank().ToUpper();
+		Log::Info("", __FUNCTION__, "end_time_1   =[{0}]", end_time_1);
+		Log::Info("", __FUNCTION__, "HEAT_NO   =[{0}],st_no][{1}]", heat_no, st_no);
+		switch (conn->DatabaseKind)
+		{
+		case DB_KIND_DB2:				// DB2 数据库（未开Oracle兼容）
+		case DB_KIND_DB2_ORACLE:	    // DB2 数据库（开Oracle兼容）
+		case DB_KIND_MSSQL:				// MS SQL Server数据库
+		case DB_KIND_ORACLE:	        // Oracle 数据库
+		default:
+
+			sqlstr = " select B.HEAT_NO, B.ST_NO, B.DEV_CODE, B.PROD_SHIFT_GROUP,B.START_TIME,B.IRON_TEMP,B.GROSS_LADLE_WT, "
+				" B.STEEL_TARE_WT, B.MOLTIRON_WT, H.DEV_CODE AS H_DEV_CODE, D.DES_ID, D.ADDWGT_ACT, D.FIN_WGT, D.FIN_TEMP, H.TPD_NO, H.EMPTY_LADLE_WT, "
+				" B.IRON_LADLE_NO, H.EMPTY_LADLE_WT EMPTY_LADLE_WT_1, H.IRON_TEMP H_IRON_TEMP, H.MEAS_TEMP_TIME "
+				" from TMMSM21 B "
+				" LEFT JOIN TMMSMKR14 D ON B.DES_TREATMENT_NO = D.DES_ID "
+				" LEFT JOIN TMMSM12 H ON B.IRON_LTREAT_NO = H.TPD_NO where H.TIME_STAMPS=' ' ";
+			if (end_time.Trim() != "")
+			{
+				end_time += "000000";
+				sqlstr_temp += " AND B.END_TIME >= @end_time";
+			}
+			if (end_time_1.Trim() != "")
+			{
+				end_time_1 += "606060";
+				sqlstr_temp += " AND B.END_TIME <= @end_time_1";
+			}
+			if (heat_no.Trim() != "")
+			{
+				sqlstr_temp += " AND B.HEAT_NO = @heat_no";
+			}
+			if (st_no.Trim() != "")
+			{
+				sqlstr_temp += " AND B.ST_NO = @st_no";
+			}
+			sql_group = "  ";
+			sqlstr = sqlstr + sqlstr_temp + sql_group;
+			cmd_inq.Parameters.Set("end_time", end_time);
+			cmd_inq.Parameters.Set("end_time_1", end_time_1);
+			cmd_inq.Parameters.Set("heat_no", heat_no);
+			cmd_inq.Parameters.Set("st_no", st_no);
+			cmd_inq.SetCommandText(sqlstr);
+			Log::Info("", __FUNCTION__, "sqlstr   =[{0}]", sqlstr);
+			cmd_inq.ExecuteQuery(bcls_ret->Tables[0]);
+			cmd_inq.Close();
+		}
+	}
+	catch (CDbException& ex)  //捕获数据库操作异常
+	{
+		CFormattable arguments[] = { ex.GetCode() };
+		CMessageFormat::Format(s.msg, _RES("GCRSS0000006")/*数据库处理出错，sqlcode=[{0}]。请联系系统维护人员。*/, arguments, 1);
+		CString str = sqlstr + "\r\n" + ex.GetMsg();
+		strncpy(s.sysmsg, (const char*)str, sizeof(s.sysmsg) - 1);
+		s.flag = -1;
+		doFlag = -1;      //数据库异常时返回-1，事务将被回滚
+	}
+	catch (CApplicationException& ex)  //捕获应用错误
+	{
+		s.flag = ex.GetCode();
+		doFlag = -1;
+	}
+	catch (CException& ex)
+	{
+		strncpy(s.msg, (const char*)ex.GetMsg(), sizeof(s.msg) - 1);
+		s.flag = ex.GetCode();
+		doFlag = -1;
+	}
+
+
+	return doFlag;
+
+}

@@ -1,0 +1,212 @@
+/*************************************************
+Copyright: Baosight Software LTD.co Copyright (c) 2010
+Author:   向萍
+Version:    1.0
+Date:     20145-11-25
+Description: 工序实绩查询
+***********************************************************************/
+
+/***** C++ 的标准头文件部分 *****/
+#include "stdafx.h"
+
+
+/***** C++ 的业务头文件部分 *****/
+
+
+
+
+/******后台pc文件标准注释标记*****/
+/*<remark>=========================================================
+/// <summary>
+/// CC工序实绩查询
+/// <para>
+/// 1.根据时间范围,炉号等条件进行CC实绩查询。
+///
+/// </para>
+/// <para>数据库表：          </para>
+/// <para>主调用函数：        </para>
+/// </summary>
+/// <param name="">                      </param>
+/// <param name="">                    </param>
+/// <returns> CC实绩 </returns>
+===========================================================</remark>*/
+// service入口
+BM2F_ENTERACE(mmsm33batch_inq)
+
+int f_mmsm33batch_inq(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn)
+{
+	CTracer log(__FUNCTION__);
+
+	/* ***** 自定义变量 ***** */
+	int doFlag = 0;
+
+	CString sqlstr = "";
+	CString sqlstr_count = "";
+	CString sqlstr_temp = "";
+	int		TotalRecordCount = 0;
+	int     i = 0;
+
+	CString ch_start_time_f = "";
+	CString ch_start_time_t = "";
+	CString v_table_type = "";//表名称。
+	CString v_proc_div = "";
+	CString v_heat_no = "";
+	CString v_heat_confirm_flag = "";
+	CString v_pono = "";
+
+
+	//系统的分页类信息。
+	CPageInfo pageInfo;
+
+	CModel tmmsm00("TMMSM00");
+
+	CDbCommand cmd_inq(conn);
+	CDbCommand cmd_sql(conn);
+
+	try
+	{
+		try
+		{//获取前台DEV控件传入的分页信息
+			pageInfo.MergeFrom(bcls_rec->Tables["PageInfo"].Rows[0]);
+		}
+		catch (CException& ce)
+		{
+			pageInfo.RecordFrom = 0;
+			pageInfo.PageSize = 1000;
+		}
+
+
+
+		//--------------------------------
+		//获取传入参数
+		tmmsm00.MergeFrom(bcls_rec->Tables[0].Rows[0]);
+
+		if (bcls_rec->Tables[0].Columns.Contains("TABLE_TYPE"))
+			v_table_type = bcls_rec->Tables[0].Rows[0]["TABLE_TYPE"].ToString();
+		if (bcls_rec->Tables[0].Columns.Contains("PROC_DIV"))
+			v_proc_div = bcls_rec->Tables[0].Rows[0]["PROC_DIV"].ToString();
+
+		if (bcls_rec->Tables[0].Columns.Contains("START_TIME_F"))
+			ch_start_time_f = bcls_rec->Tables[0].Rows[0]["START_TIME_F"].ToString().Trim();
+		if (bcls_rec->Tables[0].Columns.Contains("START_TIME_T"))
+			ch_start_time_t = bcls_rec->Tables[0].Rows[0]["START_TIME_T"].ToString().Trim();
+
+		if (bcls_rec->Tables[0].Columns.Contains("PONO"))
+			v_pono = bcls_rec->Tables[0].Rows[0]["PONO"].ToString().Trim();
+
+
+		if (v_table_type.Trim() == "")
+		{
+			sprintf(s.msg, "【表名称】不允许为空。");
+			throw CApplicationException(-1, s.msg, log.Location);
+		}
+
+		/* 设置开始时刻和结束时刻 */
+		if (ch_start_time_f.Trim() != "")
+		{
+			ch_start_time_f = ch_start_time_f.Substring(0, 8);
+			ch_start_time_f += "000000";
+		}
+		if (ch_start_time_t.Trim() != "")
+		{
+			ch_start_time_t = ch_start_time_t.Substring(0, 8);
+			ch_start_time_t += "235959";
+		}
+
+
+		/* ***** 打印输入参数 ***** */
+		Log::Info("", __FUNCTION__, "FACTORY_DIV =[{0}]", tmmsm00["FACTORY_DIV"].ToString());
+		Log::Info("", __FUNCTION__, "PONO      =[{0}]", tmmsm00["PONO"].ToString());
+		Log::Info("", __FUNCTION__, "HEAT_NO   =[{0}]", tmmsm00["HEAT_NO"].ToString());
+		Log::Info("", __FUNCTION__, "PROC_NO   =[{0}]", tmmsm00["PROC_NO"].ToString());
+		Log::Info("", __FUNCTION__, "STATION_NO=[{0}]", tmmsm00["STATION_NO"].ToString());
+		Log::Info("", __FUNCTION__, "start_time_f  =[{0}]", ch_start_time_f);
+		Log::Info("", __FUNCTION__, "start_time_t  =[{0}]", ch_start_time_t);
+
+
+		if (v_proc_div.Trim() != "")
+		{
+			if (tmmsm00["HEAT_NO"].ToString().Trim() == "")
+			{
+				strcpy(s.msg, "熔炼号不能为空，请先按F2查询!");
+				throw CApplicationException(-1, s.msg, log.Location);
+			}
+		}
+
+
+
+		switch (conn->DatabaseKind)
+		{
+		case DB_KIND_DB2:				// DB2 数据库（未开Oracle兼容）
+		case DB_KIND_DB2_ORACLE:	    // DB2 数据库（开Oracle兼容）
+		case DB_KIND_MSSQL:				// MS SQL Server数据库
+		case DB_KIND_ORACLE:	        // Oracle 数据库
+		default:
+
+			sqlstr_count = " SELECT COUNT(1)  FROM " + v_table_type + " WHERE 1=1 ";
+			sqlstr = " SELECT *  FROM " + v_table_type + " WHERE 1=1 ";
+
+			if (v_table_type == "TPSSM03")
+			{
+				sqlstr_temp += " AND  SLAB_PROD_FLAG = '0'";
+			}
+			if (v_pono.Trim() != "")
+			{
+				sqlstr_temp += " AND  PONO = '" + v_pono + "'";
+			}
+			
+			sqlstr = sqlstr + sqlstr_temp;
+
+			Log::Trace("", __FUNCTION__, "sqlstr[{0}]  ", sqlstr);
+			break;
+		}
+
+		
+
+
+		cmd_inq.SetCommandText(sqlstr_count);
+		TotalRecordCount = cmd_inq.ExecuteScalar().ToInt32();
+		//分页获取
+		cmd_inq.SetCommandText(sqlstr);
+		cmd_inq.ExecuteQuery(bcls_ret->Tables[0], pageInfo.RecordFrom, pageInfo.PageSize);
+		cmd_inq.Close();
+
+
+		//增加非表中字段
+		if (!bcls_ret->Tables[0].Columns.Contains("HEAT_CONFIRM_FLAG"))
+		{
+			bcls_ret->Tables[0].Columns.Add(DT_STRING, "HEAT_CONFIRM_FLAG");
+		}
+
+
+		
+
+
+		
+
+	}
+	catch (CDbException& ex)  //捕获数据库操作异常
+	{
+		CFormattable arguments[] = { ex.GetCode() };
+		CMessageFormat::Format(s.msg, _RES("GCRSS0000006")/*数据库处理出错，sqlcode=[{0}]。请联系系统维护人员。*/, arguments, 1);
+		CString str = sqlstr + "\r\n" + ex.GetMsg();
+		strncpy(s.sysmsg, (const char*)str, sizeof(s.sysmsg) - 1);
+		s.flag = -1;
+		doFlag = -1;      //数据库异常时返回-1，事务将被回滚
+	}
+	catch (CApplicationException& ex)  //捕获应用错误
+	{
+		s.flag = ex.GetCode();
+		doFlag = -1;
+	}
+	catch (CException& ex)
+	{
+		strncpy(s.msg, (const char*)ex.GetMsg(), sizeof(s.msg) - 1);
+		s.flag = ex.GetCode();
+		doFlag = -1;
+	}
+
+
+	return doFlag;
+
+}
