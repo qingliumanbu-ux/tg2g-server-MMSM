@@ -49,7 +49,13 @@ int f_mmsm_get_density(CString ST_NO, CDecimal& MAT_DENSITY, CDbConnection* conn
 	try
 	{
 		CDecimal v_code_wt = 7.85;//计算重量的系数,默认7.85
-		sqlstr = " select CODE_DESC_1_CONTENT,decode(trim(CODE_DESC_2_CONTENT),'',7.85,trim(CODE_DESC_2_CONTENT)) CODE_DESC_2_CONTENT from TWMSMZD02 where CODE_CLASS='MMSMDENS' ORDER BY CODE  ";
+// DM8 适配 CHANGE-155:查询。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+		// sqlstr = " select CODE_DESC_1_CONTENT,decode(trim(CODE_DESC_2_CONTENT),'',7.85,trim(CODE_DESC_2_CONTENT)) CODE_DESC_2_CONTENT from TWMSMZD02 where CODE_CLASS='MMSMDENS' ORDER BY CODE  ";
+// DM8 SQL：
+		sqlstr = " select CODE_DESC_1_CONTENT,CASE WHEN trim(CODE_DESC_2_CONTENT) IS NULL OR trim(CODE_DESC_2_CONTENT) = '' THEN 7.85 ELSE trim(CODE_DESC_2_CONTENT) END CODE_DESC_2_CONTENT from TWMSMZD02 where CODE_CLASS='MMSMDENS' ORDER BY CODE  ";
 		cmd_inq.SetCommandText(sqlstr);
 		cmd_inq.ExecuteReader();
 		while (cmd_inq.Read())

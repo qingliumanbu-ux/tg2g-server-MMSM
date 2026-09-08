@@ -123,11 +123,23 @@ int f_mmsmlcbgx_inq(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn
 
 			if (v_from.Trim() != "")
 			{
-				sqlstr += " AND to_char(to_date(decode(trim(AOD_BOF_E_DTIME),null,'1999-01-01 00:01:01',AOD_BOF_E_DTIME),'yyyy-mm-dd hh24:mi:ss'),'yyyyMMddhhmiss')>= @v_from";
+// DM8 适配 CHANGE-177:查询。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+				// sqlstr += " AND to_char(to_date(decode(trim(AOD_BOF_E_DTIME),null,'1999-01-01 00:01:01',AOD_BOF_E_DTIME),'yyyy-mm-dd hh24:mi:ss'),'yyyyMMddhhmiss')>= @v_from";
+// DM8 SQL：
+				sqlstr += " AND to_char(to_date(CASE WHEN trim(AOD_BOF_E_DTIME) IS NULL THEN '1999-01-01 00:01:01' ELSE AOD_BOF_E_DTIME END,'yyyy-mm-dd hh24:mi:ss'),'yyyyMMddhhmiss')>= @v_from";
 			}
 			if (v_to.Trim() != "")
 			{
-				sqlstr += " AND to_char(to_date(decode(trim(AOD_BOF_E_DTIME),null,'1999-01-01 00:01:01',AOD_BOF_E_DTIME),'yyyy-mm-dd hh24:mi:ss'),'yyyyMMddhhmiss')<= @v_to";
+// DM8 适配 CHANGE-178:查询。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+				// sqlstr += " AND to_char(to_date(decode(trim(AOD_BOF_E_DTIME),null,'1999-01-01 00:01:01',AOD_BOF_E_DTIME),'yyyy-mm-dd hh24:mi:ss'),'yyyyMMddhhmiss')<= @v_to";
+// DM8 SQL：
+				sqlstr += " AND to_char(to_date(CASE WHEN trim(AOD_BOF_E_DTIME) IS NULL THEN '1999-01-01 00:01:01' ELSE AOD_BOF_E_DTIME END,'yyyy-mm-dd hh24:mi:ss'),'yyyyMMddhhmiss')<= @v_to";
 			}
 
 			Log::Trace("", __FUNCTION__, "sqlstr[{0}]  ", sqlstr);

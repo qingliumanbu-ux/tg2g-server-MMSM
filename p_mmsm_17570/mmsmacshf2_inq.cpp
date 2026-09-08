@@ -233,11 +233,22 @@ int f_mmsmacshf2_inq(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * con
 
 				if (v_archive_flag == "T" || v_archive_flag == "")//在线数据先查TMMSM01表，历史数据查HMMSM01表
 				{
+// DM8 适配 CHANGE-170:查询。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+					// sqlstr = "SELECT * FROM ( SELECT CASE WHEN (SELECT PONO FROM TPSSM11 S WHERE S.PONO = T.PONO )  IS NULL and (SELECT PONO FROM TPSSM_PLAN_ST S WHERE S.PONO = T.PONO) IS NULL  THEN "
+						// "	'8' WHEN T.PONO_SLAB <> ' ' THEN '9' ELSE '3' END AS SLAB_TYPE_OLD,DECODE(substr(TQ01.ORDER_NO,0,1),'A',TQ01.TRNP_MODE_CODE,' ')  TRNP_MODE_CODE_1,TQ01.ORDER_THICK,TQ01.PROD_CLASS_DESC, decode(t2.MAT_NO, null, '0', '1') need_mend,nvl(t2.MEND_CAUSE, ' ')           MEND_CAUSE, T.*,CASE WHEN T.RCV_MAT_FLAG = 'N' THEN ' ' WHEN T.measure_wt = T.receive_weight THEN '1' ELSE '0' END AS avlb_flag1 FROM TMMSM01 T LEFT JOIN TQMOM01 TQ01 ON  T.ORDER_NO =TQ01.ORDER_NO LEFT JOIN get_mend_flag t2 ON T.mat_no = t2.MAT_NO  WHERE 1 = 1  " + sqlstr_temp + " "
+						// "	UNION ALL "
+						// "	SELECT CASE WHEN(SELECT PONO FROM TPSSM11 S WHERE S.PONO = T.PONO)  IS NULL and(SELECT PONO FROM TPSSM_PLAN_ST S WHERE S.PONO = T.PONO) IS NULL  THEN	"
+						// "	'8' WHEN T.PONO_SLAB <> ' ' THEN '9' ELSE '3' END AS SLAB_TYPE_OLD, DECODE(substr(TQ01.ORDER_NO,0,1),'A',TQ01.TRNP_MODE_CODE,' ') TRNP_MODE_CODE_1,TQ01.ORDER_THICK,TQ01.PROD_CLASS_DESC, decode(t2.MAT_NO, null, '0', '1') need_mend,nvl(t2.MEND_CAUSE, ' ')           MEND_CAUSE, T.*,CASE WHEN T.RCV_MAT_FLAG = 'N' THEN ' ' WHEN T.measure_wt = T.receive_weight THEN '1' ELSE '0' END AS avlb_flag1 FROM HMMSM01 T LEFT JOIN TQMOM01 TQ01 ON  T.ORDER_NO =TQ01.ORDER_NO LEFT JOIN get_mend_flag t2 ON T.mat_no = t2.MAT_NO WHERE 1 = 1 " + sqlstr_temp + "  "
+						// "	AND USAGE_DECISION <> '3001' )  ORDER BY PROD_TIME DESC ";
+// DM8 SQL：
 					sqlstr = "SELECT * FROM ( SELECT CASE WHEN (SELECT PONO FROM TPSSM11 S WHERE S.PONO = T.PONO )  IS NULL and (SELECT PONO FROM TPSSM_PLAN_ST S WHERE S.PONO = T.PONO) IS NULL  THEN "
-						"	'8' WHEN T.PONO_SLAB <> ' ' THEN '9' ELSE '3' END AS SLAB_TYPE_OLD,DECODE(substr(TQ01.ORDER_NO,0,1),'A',TQ01.TRNP_MODE_CODE,' ')  TRNP_MODE_CODE_1,TQ01.ORDER_THICK,TQ01.PROD_CLASS_DESC, decode(t2.MAT_NO, null, '0', '1') need_mend,nvl(t2.MEND_CAUSE, ' ')           MEND_CAUSE, T.*,CASE WHEN T.RCV_MAT_FLAG = 'N' THEN ' ' WHEN T.measure_wt = T.receive_weight THEN '1' ELSE '0' END AS avlb_flag1 FROM TMMSM01 T LEFT JOIN TQMOM01 TQ01 ON  T.ORDER_NO =TQ01.ORDER_NO LEFT JOIN get_mend_flag t2 ON T.mat_no = t2.MAT_NO  WHERE 1 = 1  " + sqlstr_temp + " "
+						"	'8' WHEN T.PONO_SLAB <> ' ' THEN '9' ELSE '3' END AS SLAB_TYPE_OLD,DECODE(substr(TQ01.ORDER_NO,0,1),'A',TQ01.TRNP_MODE_CODE,' ')  TRNP_MODE_CODE_1,TQ01.ORDER_THICK,TQ01.PROD_CLASS_DESC, CASE WHEN t2.MAT_NO IS NULL THEN '0' ELSE '1' END need_mend,nvl(t2.MEND_CAUSE, ' ')           MEND_CAUSE, T.*,CASE WHEN T.RCV_MAT_FLAG = 'N' THEN ' ' WHEN T.measure_wt = T.receive_weight THEN '1' ELSE '0' END AS avlb_flag1 FROM TMMSM01 T LEFT JOIN TQMOM01 TQ01 ON  T.ORDER_NO =TQ01.ORDER_NO LEFT JOIN get_mend_flag t2 ON T.mat_no = t2.MAT_NO  WHERE 1 = 1  " + sqlstr_temp + " "
 						"	UNION ALL "
 						"	SELECT CASE WHEN(SELECT PONO FROM TPSSM11 S WHERE S.PONO = T.PONO)  IS NULL and(SELECT PONO FROM TPSSM_PLAN_ST S WHERE S.PONO = T.PONO) IS NULL  THEN	"
-						"	'8' WHEN T.PONO_SLAB <> ' ' THEN '9' ELSE '3' END AS SLAB_TYPE_OLD, DECODE(substr(TQ01.ORDER_NO,0,1),'A',TQ01.TRNP_MODE_CODE,' ') TRNP_MODE_CODE_1,TQ01.ORDER_THICK,TQ01.PROD_CLASS_DESC, decode(t2.MAT_NO, null, '0', '1') need_mend,nvl(t2.MEND_CAUSE, ' ')           MEND_CAUSE, T.*,CASE WHEN T.RCV_MAT_FLAG = 'N' THEN ' ' WHEN T.measure_wt = T.receive_weight THEN '1' ELSE '0' END AS avlb_flag1 FROM HMMSM01 T LEFT JOIN TQMOM01 TQ01 ON  T.ORDER_NO =TQ01.ORDER_NO LEFT JOIN get_mend_flag t2 ON T.mat_no = t2.MAT_NO WHERE 1 = 1 " + sqlstr_temp + "  "
+						"	'8' WHEN T.PONO_SLAB <> ' ' THEN '9' ELSE '3' END AS SLAB_TYPE_OLD, DECODE(substr(TQ01.ORDER_NO,0,1),'A',TQ01.TRNP_MODE_CODE,' ') TRNP_MODE_CODE_1,TQ01.ORDER_THICK,TQ01.PROD_CLASS_DESC, CASE WHEN t2.MAT_NO IS NULL THEN '0' ELSE '1' END need_mend,nvl(t2.MEND_CAUSE, ' ')           MEND_CAUSE, T.*,CASE WHEN T.RCV_MAT_FLAG = 'N' THEN ' ' WHEN T.measure_wt = T.receive_weight THEN '1' ELSE '0' END AS avlb_flag1 FROM HMMSM01 T LEFT JOIN TQMOM01 TQ01 ON  T.ORDER_NO =TQ01.ORDER_NO LEFT JOIN get_mend_flag t2 ON T.mat_no = t2.MAT_NO WHERE 1 = 1 " + sqlstr_temp + "  "
 						"	AND USAGE_DECISION <> '3001' )  ORDER BY PROD_TIME DESC ";
 				}
 			}

@@ -125,19 +125,40 @@ int f_mmsm01g2_inq(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn)
 			sql_where += " AND ( 1 <> 1";
 			if (v_whole_backlog_code1.Trim().GetLength() > 0){
 				m_whole_backlog_code1 = "%" + v_whole_backlog_code1 + "%";
+// DM8 适配 CHANGE-362:查询。见改写原因。
+// 改写原因：DB2 POSSTR(源串,子串) 改为 DM 的 INSTR(源串,子串)(参数顺序一致,未找到时同为 0;POSSTR 不在 DM 函数手册,INSTR 为官方字符串函数)；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+				// sql_where += " OR ( A.WHOLE_BACKLOG LIKE @m_whole_backlog_code1 AND  "
+					// " (POSSTR(A.WHOLE_BACKLOG,@v_whole_backlog_code1)-POSSTR(A.WHOLE_BACKLOG,@v_whole_backlog_code1)/2 *2)>0)";
+// DM8 SQL：
 				sql_where += " OR ( A.WHOLE_BACKLOG LIKE @m_whole_backlog_code1 AND  "
-					" (POSSTR(A.WHOLE_BACKLOG,@v_whole_backlog_code1)-POSSTR(A.WHOLE_BACKLOG,@v_whole_backlog_code1)/2 *2)>0)";
+					" (INSTR(A.WHOLE_BACKLOG, @v_whole_backlog_code1)-INSTR(A.WHOLE_BACKLOG, @v_whole_backlog_code1)/2 *2)>0)";
 			}
 			if (v_whole_backlog_code1.Trim().GetLength() > 0){
 				m_whole_backlog_code2 = "%" + v_whole_backlog_code2 + "%";
+// DM8 适配 CHANGE-363:查询。见改写原因。
+// 改写原因：DB2 POSSTR(源串,子串) 改为 DM 的 INSTR(源串,子串)(参数顺序一致,未找到时同为 0;POSSTR 不在 DM 函数手册,INSTR 为官方字符串函数)；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+				// sql_where += " OR ( A.WHOLE_BACKLOG LIKE @m_whole_backlog_code2 AND  "
+					// " (POSSTR(A.WHOLE_BACKLOG,@v_whole_backlog_code2)-POSSTR(A.WHOLE_BACKLOG,@v_whole_backlog_code2)/2 *2)>0)";
+// DM8 SQL：
 				sql_where += " OR ( A.WHOLE_BACKLOG LIKE @m_whole_backlog_code2 AND  "
-					" (POSSTR(A.WHOLE_BACKLOG,@v_whole_backlog_code2)-POSSTR(A.WHOLE_BACKLOG,@v_whole_backlog_code2)/2 *2)>0)";
+					" (INSTR(A.WHOLE_BACKLOG, @v_whole_backlog_code2)-INSTR(A.WHOLE_BACKLOG, @v_whole_backlog_code2)/2 *2)>0)";
 
 			}
 			if (v_whole_backlog_code1.Trim().GetLength() > 0){
 				m_whole_backlog_code3 = "%" + v_whole_backlog_code3 + "%";
+// DM8 适配 CHANGE-364:查询。见改写原因。
+// 改写原因：DB2 POSSTR(源串,子串) 改为 DM 的 INSTR(源串,子串)(参数顺序一致,未找到时同为 0;POSSTR 不在 DM 函数手册,INSTR 为官方字符串函数)；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+				// sql_where += " OR ( A.WHOLE_BACKLOG LIKE @m_whole_backlog_code3 AND  "
+					// " (POSSTR(A.WHOLE_BACKLOG,@v_whole_backlog_code3)-POSSTR(A.WHOLE_BACKLOG,@v_whole_backlog_code3)/2 *2)>0)";
+// DM8 SQL：
 				sql_where += " OR ( A.WHOLE_BACKLOG LIKE @m_whole_backlog_code3 AND  "
-					" (POSSTR(A.WHOLE_BACKLOG,@v_whole_backlog_code3)-POSSTR(A.WHOLE_BACKLOG,@v_whole_backlog_code3)/2 *2)>0)";
+					" (INSTR(A.WHOLE_BACKLOG, @v_whole_backlog_code3)-INSTR(A.WHOLE_BACKLOG, @v_whole_backlog_code3)/2 *2)>0)";
 			}
 			sql_where += ")";
 		}

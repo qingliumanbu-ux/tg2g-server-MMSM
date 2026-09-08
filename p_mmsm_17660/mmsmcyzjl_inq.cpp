@@ -90,13 +90,30 @@ int f_mmsmcyzjl_inq(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn
 		case DB_KIND_ORACLE:	        // Oracle 数据库
 		default:
 
+// DM8 适配 CHANGE-174:查询。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+			// sqlstr = " select a.PROD_TIME,a.PROD_SHIFT_GROUP,a.HEAT_NO,a.MAT_NO,a.ST_NO,a.MAT_LEN,a.MAT_WIDTH,a.MAT_THICK,a.MAT_WT, "
+				// " decode(b.SHIFT_GROUP, null, c.shift_group, b.SHIFT_GROUP)          LOAD_UP_SHIFT_GROUP,decode(b.OUT_STOCK_TIME, null, c.OUT_STOCK_TIME, b.OUT_STOCK_TIME) LOAD_UP_TIME, "
+				// " CASE WHEN substr(b.OUT_STOCK_TIME,9,4)>='0800' AND substr(b.OUT_STOCK_TIME,9,4)<='2000' THEN '白班'"
+				// " ELSE '夜班' END SHIFT_NO, "
+				// " a.HAND_OVER_GROUP AS OUT_STOCK_SHIFT_GROUP, c.LOAD_END_TIME AS OUT_STOCK_TIME, DECODE(TRAN_END_TIME,' ',TRAN_TIME,TRAN_END_TIME)TRAN_TIME ,B.OPERATOR EMP_NAME,"
+				// " a.LGORT,  decode(b.UNLOAD_CODE, null, c.UNLOAD_CODE, b.UNLOAD_CODE)          UNLOAD_CODE, "
+				// " decode(b.TRUCK_NO, null, c.TRUCK_NO, b.TRUCK_NO)                   TRUCK_NO, D.CODE_DESC_1_CONTENT, b.OPERATOR, GUIDE_DEST, STOCK_L2, C.REMARK, a.UNIT_CODE,a.c_div"
+				// " from vmmsm01 a"
+				// " left join vwmsm12 b on a.LOAD_SCHEME_NO = b.LOAD_SCHEME_NO and a.MAT_NO = b.MAT_NO"
+				// " left join twmsm61 c on a.PRACTICE_NO = c.PRACTICE_NO and a.MAT_NO = c.MAT_NO"
+				// " left join twmsmzd02 d on d.CODE = b.TRUCK_NO and d.code_class='WM01' "
+				// " where 1=1 AND A.LOAD_SCHEME_NO!=' ' ";
+// DM8 SQL：
 			sqlstr = " select a.PROD_TIME,a.PROD_SHIFT_GROUP,a.HEAT_NO,a.MAT_NO,a.ST_NO,a.MAT_LEN,a.MAT_WIDTH,a.MAT_THICK,a.MAT_WT, "
-				" decode(b.SHIFT_GROUP, null, c.shift_group, b.SHIFT_GROUP)          LOAD_UP_SHIFT_GROUP,decode(b.OUT_STOCK_TIME, null, c.OUT_STOCK_TIME, b.OUT_STOCK_TIME) LOAD_UP_TIME, "
+				" CASE WHEN b.SHIFT_GROUP IS NULL THEN c.shift_group ELSE b.SHIFT_GROUP END          LOAD_UP_SHIFT_GROUP,CASE WHEN b.OUT_STOCK_TIME IS NULL THEN c.OUT_STOCK_TIME ELSE b.OUT_STOCK_TIME END LOAD_UP_TIME, "
 				" CASE WHEN substr(b.OUT_STOCK_TIME,9,4)>='0800' AND substr(b.OUT_STOCK_TIME,9,4)<='2000' THEN '白班'"
 				" ELSE '夜班' END SHIFT_NO, "
 				" a.HAND_OVER_GROUP AS OUT_STOCK_SHIFT_GROUP, c.LOAD_END_TIME AS OUT_STOCK_TIME, DECODE(TRAN_END_TIME,' ',TRAN_TIME,TRAN_END_TIME)TRAN_TIME ,B.OPERATOR EMP_NAME,"
-				" a.LGORT,  decode(b.UNLOAD_CODE, null, c.UNLOAD_CODE, b.UNLOAD_CODE)          UNLOAD_CODE, "
-				" decode(b.TRUCK_NO, null, c.TRUCK_NO, b.TRUCK_NO)                   TRUCK_NO, D.CODE_DESC_1_CONTENT, b.OPERATOR, GUIDE_DEST, STOCK_L2, C.REMARK, a.UNIT_CODE,a.c_div"
+				" a.LGORT,  CASE WHEN b.UNLOAD_CODE IS NULL THEN c.UNLOAD_CODE ELSE b.UNLOAD_CODE END          UNLOAD_CODE, "
+				" CASE WHEN b.TRUCK_NO IS NULL THEN c.TRUCK_NO ELSE b.TRUCK_NO END                   TRUCK_NO, D.CODE_DESC_1_CONTENT, b.OPERATOR, GUIDE_DEST, STOCK_L2, C.REMARK, a.UNIT_CODE,a.c_div"
 				" from vmmsm01 a"
 				" left join vwmsm12 b on a.LOAD_SCHEME_NO = b.LOAD_SCHEME_NO and a.MAT_NO = b.MAT_NO"
 				" left join twmsm61 c on a.PRACTICE_NO = c.PRACTICE_NO and a.MAT_NO = c.MAT_NO"

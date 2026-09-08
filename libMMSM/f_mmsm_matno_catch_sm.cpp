@@ -588,7 +588,13 @@ BM2_FUNCTION_EXPORT
 						if (c_seq_max >= "9")
 						{
 							if (c_seq_max == "9")c_seq_max = "@";// ASCII码里字符A代表的十进制数字65前一位64所对应的就是字符@
-							sqlstr = "SELECT  chr(to_number(ABS(ASCII(@seq) - 55))+55+1)   FROM SYSIBM.SYSDUMMY1 ";
+// DM8 适配 CHANGE-162:查询。SYSIBM 辅助表改为 DUAL。
+// 改写原因：SYSIBM 辅助表改为 DUAL；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+							// sqlstr = "SELECT  chr(to_number(ABS(ASCII(@seq) - 55))+55+1)   FROM SYSIBM.SYSDUMMY1 ";
+// DM8 SQL：
+							sqlstr = "SELECT  chr(to_number(ABS(ASCII(@seq) - 55))+55+1)   FROM DUAL ";
 							cmd_inq.SetCommandText(sqlstr);
 							cmd_inq.Parameters.Set("seq", c_seq_max);
 							cmd_inq.ExecuteReader();

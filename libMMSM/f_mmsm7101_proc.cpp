@@ -75,7 +75,13 @@ BM2_FUNCTION_EXPORT
 				{
 				case DB_KIND_DB2:				// DB2 数据库（未开Oracle兼容）
 
-					sqlstr = "SELECT MAX(SUBSTR(SLAG_PROC_NO, 5, 5)) + 1 FROM TMMSM71 WHERE  SUBSTR(SLAG_PROC_NO, 1, 2) = (SELECT substr(to_char(current date,'yyyy'),3,2) FROM sysibm.sysdummy1)";
+// DM8 适配 CHANGE-151:查询。SYSIBM 辅助表改为 DUAL。
+// 改写原因：SYSIBM 辅助表改为 DUAL；DB2 特殊寄存器 current date/time/timestamp 改为 DM 的 CURRENT_DATE/CURRENT_TIME/CURRENT_TIMESTAMP(官方函数手册支持)；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+					// sqlstr = "SELECT MAX(SUBSTR(SLAG_PROC_NO, 5, 5)) + 1 FROM TMMSM71 WHERE  SUBSTR(SLAG_PROC_NO, 1, 2) = (SELECT substr(to_char(current date,'yyyy'),3,2) FROM sysibm.sysdummy1)";
+// DM8 SQL：
+					sqlstr = "SELECT MAX(SUBSTR(SLAG_PROC_NO, 5, 5)) + 1 FROM TMMSM71 WHERE  SUBSTR(SLAG_PROC_NO, 1, 2) = (SELECT substr(to_char(CURRENT_DATE,'yyyy'),3,2) FROM DUAL)";
 
 					break;
 
@@ -83,7 +89,13 @@ BM2_FUNCTION_EXPORT
 				case DB_KIND_MSSQL:				// MS SQL Server数据库
 				case DB_KIND_ORACLE:	        // Oracle 数据库
 				default:
-					sqlstr = "SELECT MAX(SUBSTR(SLAG_PROC_NO, 5, 5)) + 1 FROM TMMSM71 WHERE  SUBSTR(SLAG_PROC_NO, 1, 2) = (SELECT substr(to_char(current date,'yyyy'),3,2)  FROM DUAL)";
+// DM8 适配 CHANGE-152:查询。见改写原因。
+// 改写原因：DB2 特殊寄存器 current date/time/timestamp 改为 DM 的 CURRENT_DATE/CURRENT_TIME/CURRENT_TIMESTAMP(官方函数手册支持)；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+					// sqlstr = "SELECT MAX(SUBSTR(SLAG_PROC_NO, 5, 5)) + 1 FROM TMMSM71 WHERE  SUBSTR(SLAG_PROC_NO, 1, 2) = (SELECT substr(to_char(current date,'yyyy'),3,2)  FROM DUAL)";
+// DM8 SQL：
+					sqlstr = "SELECT MAX(SUBSTR(SLAG_PROC_NO, 5, 5)) + 1 FROM TMMSM71 WHERE  SUBSTR(SLAG_PROC_NO, 1, 2) = (SELECT substr(to_char(CURRENT_DATE,'yyyy'),3,2)  FROM DUAL)";
 
 					break;
 				}

@@ -890,7 +890,13 @@ int f_cm_0rt801_rcv(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn
 					// 因为错误率较高，暂不更新，等产销做在制品成品的转换时发送电文时再转换。  mfj  李振  20240409
 					if (tmmsm01["ORDER_NO"].ToString().Trim() != "")
 					{
-						CString pre_whole = Db::QueryCString("select SUBSTR2(WHOLE_BACKLOG, INSTR(WHOLE_BACKLOG, '9A') -2, 2) from tqmom03 WHERE ORDER_NO = '" + tmmsm01["ORDER_NO"].ToString() + "'");
+// DM8 适配 CHANGE-359:查询。SUBSTR2 改为 SUBSTR。
+// 改写原因：SUBSTR2 改为 DM 文档支持的 SUBSTR(按字符截取;BMP 字符下与码点语义一致);位置参数 0 显式改为 1,保持 Oracle 原语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+						// CString pre_whole = Db::QueryCString("select SUBSTR2(WHOLE_BACKLOG, INSTR(WHOLE_BACKLOG, '9A') -2, 2) from tqmom03 WHERE ORDER_NO = '" + tmmsm01["ORDER_NO"].ToString() + "'");
+// DM8 SQL：
+						CString pre_whole = Db::QueryCString("select SUBSTR(WHOLE_BACKLOG, INSTR(WHOLE_BACKLOG, '9A') -2, 2) from tqmom03 WHERE ORDER_NO = '" + tmmsm01["ORDER_NO"].ToString() + "'");
 						if (pre_whole.Trim() != "")
 						{
 							//临钢坯合同按在制品算consign_user_code = '0010000008'

@@ -436,8 +436,16 @@ int f_mmsm80a(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn)
 		switch (conn->DatabaseKind)
 		{
 		case DB_KIND_DB2:				// DB2 数据库（未开Oracle兼容）
-			sqlstr = " SELECT TO_CHAR(CURRENT TIMESTAMP, 'YYYYMMDDHH24MISSFF4') "
-				" FROM SYSIBM.SYSDUMMY1  ";	//取20位系统时刻
+// DM8 适配 CHANGE-153:查询。SYSIBM 辅助表改为 DUAL。
+// 改写原因：SYSIBM 辅助表改为 DUAL；DB2 特殊寄存器 current date/time/timestamp 改为 DM 的 CURRENT_DATE/CURRENT_TIME/CURRENT_TIMESTAMP(官方函数手册支持)；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+			// sqlstr = " SELECT TO_CHAR(CURRENT TIMESTAMP, 'YYYYMMDDHH24MISSFF4') "
+				// " FROM SYSIBM.SYSDUMMY1  ";	//取20位系统时刻
+			// break;
+// DM8 SQL：
+			sqlstr = " SELECT TO_CHAR(CURRENT_TIMESTAMP, 'YYYYMMDDHH24MISSFF4') "
+				" FROM DUAL  ";	//取20位系统时刻
 			break;
 		case DB_KIND_DB2_ORACLE:	    // DB2 数据库（开Oracle兼容）
 		case DB_KIND_MSSQL:				// MS SQL Server数据库

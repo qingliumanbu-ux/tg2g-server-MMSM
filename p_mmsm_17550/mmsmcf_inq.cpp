@@ -86,6 +86,21 @@ int f_mmsmcf_inq(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn)
 					case DB_KIND_ORACLE:	        // Oracle 数据库
 					default:
 
+// DM8 适配 CHANGE-169:查询。SYSIBM 辅助表改为 DUAL。
+// 改写原因：SYSIBM 辅助表改为 DUAL；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+						// sqlstr1 = "select (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '012' and st_sample_no = '"+ st_sample_no +"' ) C," +
+							// " (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '028' and st_sample_no = '"+ st_sample_no +"' ) SI," +
+							// " (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '055' and st_sample_no = '"+ st_sample_no +"' ) MN," +
+							// " (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '030' and st_sample_no = '"+ st_sample_no +"' ) P," +
+							// " (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '032' and st_sample_no = '"+ st_sample_no +"' ) S," +
+							// " (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '051' and st_sample_no = '"+ st_sample_no +"' ) V," +
+							// " (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '093' and st_sample_no = '"+ st_sample_no +"' ) NB," +
+							// " (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '211' and st_sample_no = '"+ st_sample_no +"' ) ALS," +
+							// " (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '052' and st_sample_no = '"+ st_sample_no +"' ) CR," +
+							// " (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '058' and st_sample_no = '"+ st_sample_no +"' ) NI from SYSIBM.SYSDUMMY1 ";
+// DM8 SQL：
 						sqlstr1 = "select (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '012' and st_sample_no = '"+ st_sample_no +"' ) C," +
 							" (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '028' and st_sample_no = '"+ st_sample_no +"' ) SI," +
 							" (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '055' and st_sample_no = '"+ st_sample_no +"' ) MN," +
@@ -95,7 +110,7 @@ int f_mmsmcf_inq(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn)
 							" (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '093' and st_sample_no = '"+ st_sample_no +"' ) NB," +
 							" (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '211' and st_sample_no = '"+ st_sample_no +"' ) ALS," +
 							" (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '052' and st_sample_no = '"+ st_sample_no +"' ) CR," +
-							" (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '058' and st_sample_no = '"+ st_sample_no +"' ) NI from SYSIBM.SYSDUMMY1 ";
+							" (SELECT nvl(ELM_ACT,0) FROM TQMTS25 WHERE heat_no = '"+ heat_no +"'  and elm_code = '058' and st_sample_no = '"+ st_sample_no +"' ) NI from DUAL ";
 
 						cmd_inq1.SetCommandText(sqlstr1);
 						cmd_inq1.ExecuteQuery(temp.Tables[0]);

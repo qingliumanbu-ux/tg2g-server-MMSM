@@ -129,10 +129,26 @@ int f_mmsm_gyupd(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn)
 
 			// 插入炉次信息
 			//铁水信息，涉及到预熔液也是转炉或是AOD，则要将本身对应的铁水也加入消耗中
+// DM8 适配 CHANGE-158:写入/查询 TMMSMGY08。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+			// sqlstr = " insert into tmmsmgy08(REC_CREATOR,REC_CREATE_TIME,sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,mat_code,DEVO_TIME,DEVO_WT,HANDLE_DIV)"
+				// " select @rec_creator,@rec_create_time,t1.sm_plan_nol2,t1.heat_no,t1.l2_proc_no,t1.PROC_NO,t1.dev_code,'TS0000',t1.START_TIME,case when  nvl((select DES_TREATMENT_NO from tmmsm21 t2 where t2.heat_no= t1.l2_proc_no and rownum=1),' ')=' ' then round(MOLTIRON_WT*RATIO_B* CASE WHEN BACK_C1 > 0 THEN (BACK_C1*0.01) ELSE 1 / HEAT_COUNT  END*1000,0) else round(MOLTIRON_WT*RATIO_B*RATIO_KR* CASE WHEN BACK_C1 > 0 THEN (BACK_C1*0.01) ELSE 1 / HEAT_COUNT  END*1000,0) end,HANDLE_DIV"
+				// " from ("
+				// " select sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,decode(HEAT_COUNT,0,1,HEAT_COUNT) HEAT_COUNT,TO_NUMBER(TRIM(decode(trim(BACK_C1),null,0,BACK_C1)))  as BACK_C1,HANDLE_DIV,START_TIME,RATIO_B,RATIO_KR"
+				// " from tmmsmgy06 t1 ,tmmsmw3 t3"
+				// " where 1=1"
+				// " and dev_code like 'B%'"
+				// " and heat_no=@heat_no"
+				// " ) t1 left join tmmsmgy05 t2 on t1.l2_proc_no=t2.heat_no"
+				// " where  nvl(MOLTIRON_WT,0)!=0"
+				// ;
+// DM8 SQL：
 			sqlstr = " insert into tmmsmgy08(REC_CREATOR,REC_CREATE_TIME,sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,mat_code,DEVO_TIME,DEVO_WT,HANDLE_DIV)"
 				" select @rec_creator,@rec_create_time,t1.sm_plan_nol2,t1.heat_no,t1.l2_proc_no,t1.PROC_NO,t1.dev_code,'TS0000',t1.START_TIME,case when  nvl((select DES_TREATMENT_NO from tmmsm21 t2 where t2.heat_no= t1.l2_proc_no and rownum=1),' ')=' ' then round(MOLTIRON_WT*RATIO_B* CASE WHEN BACK_C1 > 0 THEN (BACK_C1*0.01) ELSE 1 / HEAT_COUNT  END*1000,0) else round(MOLTIRON_WT*RATIO_B*RATIO_KR* CASE WHEN BACK_C1 > 0 THEN (BACK_C1*0.01) ELSE 1 / HEAT_COUNT  END*1000,0) end,HANDLE_DIV"
 				" from ("
-				" select sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,decode(HEAT_COUNT,0,1,HEAT_COUNT) HEAT_COUNT,TO_NUMBER(TRIM(decode(trim(BACK_C1),null,0,BACK_C1)))  as BACK_C1,HANDLE_DIV,START_TIME,RATIO_B,RATIO_KR"
+				" select sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,decode(HEAT_COUNT,0,1,HEAT_COUNT) HEAT_COUNT,TO_NUMBER(TRIM(CASE WHEN trim(BACK_C1) IS NULL THEN 0 ELSE BACK_C1 END))  as BACK_C1,HANDLE_DIV,START_TIME,RATIO_B,RATIO_KR"
 				" from tmmsmgy06 t1 ,tmmsmw3 t3"
 				" where 1=1"
 				" and dev_code like 'B%'"
@@ -148,10 +164,27 @@ int f_mmsm_gyupd(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn)
 			cmd_inq.ExecuteNonQuery();
 			cmd_inq.Close();
 
+// DM8 适配 CHANGE-159:写入/查询 TMMSMGY08。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+			// sqlstr = " insert into tmmsmgy08(REC_CREATOR,REC_CREATE_TIME,sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,mat_code,DEVO_TIME,DEVO_WT,HANDLE_DIV)"
+				// " select @rec_creator,@rec_create_time,t1.sm_plan_nol2,t1.heat_no,t1.l2_proc_no,t1.PROC_NO,t1.dev_code,'TS0000',t1.START_TIME,case when  nvl((select DES_TREATMENT_NO from tmmsm21 t2 where t2.heat_no= t1.l2_proc_no and rownum=1),' ')=' ' then round(MOLTIRON_WT*RATIO_B* CASE WHEN BACK_C1 > 0 THEN (BACK_C1*0.01) ELSE 1 / HEAT_COUNT  END*1000,0) else round(MOLTIRON_WT*RATIO_B*RATIO_KR* CASE WHEN BACK_C1 > 0 THEN (BACK_C1*0.01) ELSE 1 / HEAT_COUNT  END*1000,0) end,HANDLE_DIV"
+				// " from ("
+				// " select sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,decode(HEAT_COUNT,0,1,HEAT_COUNT) HEAT_COUNT,TO_NUMBER(TRIM(decode(trim(BACK_C1),null,0,BACK_C1)))  as BACK_C1,HANDLE_DIV,START_TIME,RATIO_B,RATIO_KR"
+				// " from tmmsmgy06 t1 ,tmmsmw3 t3"
+				// " where 1=1"
+				// " and not exists(select 1 from tmmsmgy05 t4 WHERE t1.l2_proc_no = t4.heat_no)"
+				// " and dev_code like 'B%'"
+				// " and heat_no=@heat_no"
+				// " ) t1 left join tmmsm21 t2 on t1.l2_proc_no=t2.l2_proc_no"
+				// " where  nvl(MOLTIRON_WT,0)!=0"
+				// ;
+// DM8 SQL：
 			sqlstr = " insert into tmmsmgy08(REC_CREATOR,REC_CREATE_TIME,sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,mat_code,DEVO_TIME,DEVO_WT,HANDLE_DIV)"
 				" select @rec_creator,@rec_create_time,t1.sm_plan_nol2,t1.heat_no,t1.l2_proc_no,t1.PROC_NO,t1.dev_code,'TS0000',t1.START_TIME,case when  nvl((select DES_TREATMENT_NO from tmmsm21 t2 where t2.heat_no= t1.l2_proc_no and rownum=1),' ')=' ' then round(MOLTIRON_WT*RATIO_B* CASE WHEN BACK_C1 > 0 THEN (BACK_C1*0.01) ELSE 1 / HEAT_COUNT  END*1000,0) else round(MOLTIRON_WT*RATIO_B*RATIO_KR* CASE WHEN BACK_C1 > 0 THEN (BACK_C1*0.01) ELSE 1 / HEAT_COUNT  END*1000,0) end,HANDLE_DIV"
 				" from ("
-				" select sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,decode(HEAT_COUNT,0,1,HEAT_COUNT) HEAT_COUNT,TO_NUMBER(TRIM(decode(trim(BACK_C1),null,0,BACK_C1)))  as BACK_C1,HANDLE_DIV,START_TIME,RATIO_B,RATIO_KR"
+				" select sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,decode(HEAT_COUNT,0,1,HEAT_COUNT) HEAT_COUNT,TO_NUMBER(TRIM(CASE WHEN trim(BACK_C1) IS NULL THEN 0 ELSE BACK_C1 END))  as BACK_C1,HANDLE_DIV,START_TIME,RATIO_B,RATIO_KR"
 				" from tmmsmgy06 t1 ,tmmsmw3 t3"
 				" where 1=1"
 				" and not exists(select 1 from tmmsmgy05 t4 WHERE t1.l2_proc_no = t4.heat_no)"
@@ -191,10 +224,27 @@ int f_mmsm_gyupd(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn)
 
 
 
+// DM8 适配 CHANGE-160:写入/查询 TMMSMGY08。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+			// sqlstr = " insert into tmmsmgy08(REC_CREATOR,REC_CREATE_TIME,sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,mat_code,ID_2A,PROC_COUNT,WEIGH_NO,QUALITY_BATCH_NO,LOT_NO,DEVO_TIME,DEVO_WT,HANDLE_DIV,STK_NO,CHARGE_TYPE)"
+				// " select @rec_creator,@rec_create_time,sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,mat_code,ID_2A,PROC_COUNT,WEIGH_NO,QUALITY_BATCH_NO,LOT_NO,DEVO_TIME,round(sum(DEVO_WT* CASE WHEN BACK_C1 > 0 THEN (BACK_C1*0.01) ELSE 1 / HEAT_COUNT  END),0) DEVO_WT,NVL(trim(HANDLE_DIV),'I'),STK_NO,CHARGE_TYPE"
+				// " from ("
+				// " select t1.sm_plan_nol2,t1.heat_no,t1.l2_proc_no,t1.proc_no,t1.dev_code,decode(t1.HEAT_COUNT,0,1,t1.HEAT_COUNT) HEAT_COUNT,TO_NUMBER(TRIM(decode(trim(BACK_C1),null,0,BACK_C1)))  as BACK_C1,t2.mat_code,t2.ID_2A,t2.PROC_COUNT,t2.WEIGH_NO,t2.LOT_NO,t2.QUALITY_BATCH_NO,t2.DEVO_TIME,t2.DEVO_WT,t1.HANDLE_DIV,t2.STK_NO,t2.CHARGE_TYPE "
+				// " from tmmsmgy06 t1 left join tmmsm2a_yl t2 on t1.dev_code = t2.dev_code and t1.l2_proc_no=t2.l2_proc_no"
+				// " where 1=1"
+				// " and substr(t1.dev_code,1,1) not in ('F','R','S','V')"
+				// " and nvl(DEVO_WT,0)!=0"
+				// " and  t1.heat_no= @heat_no"
+				// ")"
+				// " group by  sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,mat_code,ID_2A,PROC_COUNT,WEIGH_NO,QUALITY_BATCH_NO,LOT_NO,DEVO_TIME,STK_NO,CHARGE_TYPE,NVL(trim(HANDLE_DIV),'I')"
+				// ;
+// DM8 SQL：
 			sqlstr = " insert into tmmsmgy08(REC_CREATOR,REC_CREATE_TIME,sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,mat_code,ID_2A,PROC_COUNT,WEIGH_NO,QUALITY_BATCH_NO,LOT_NO,DEVO_TIME,DEVO_WT,HANDLE_DIV,STK_NO,CHARGE_TYPE)"
 				" select @rec_creator,@rec_create_time,sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,mat_code,ID_2A,PROC_COUNT,WEIGH_NO,QUALITY_BATCH_NO,LOT_NO,DEVO_TIME,round(sum(DEVO_WT* CASE WHEN BACK_C1 > 0 THEN (BACK_C1*0.01) ELSE 1 / HEAT_COUNT  END),0) DEVO_WT,NVL(trim(HANDLE_DIV),'I'),STK_NO,CHARGE_TYPE"
 				" from ("
-				" select t1.sm_plan_nol2,t1.heat_no,t1.l2_proc_no,t1.proc_no,t1.dev_code,decode(t1.HEAT_COUNT,0,1,t1.HEAT_COUNT) HEAT_COUNT,TO_NUMBER(TRIM(decode(trim(BACK_C1),null,0,BACK_C1)))  as BACK_C1,t2.mat_code,t2.ID_2A,t2.PROC_COUNT,t2.WEIGH_NO,t2.LOT_NO,t2.QUALITY_BATCH_NO,t2.DEVO_TIME,t2.DEVO_WT,t1.HANDLE_DIV,t2.STK_NO,t2.CHARGE_TYPE "
+				" select t1.sm_plan_nol2,t1.heat_no,t1.l2_proc_no,t1.proc_no,t1.dev_code,decode(t1.HEAT_COUNT,0,1,t1.HEAT_COUNT) HEAT_COUNT,TO_NUMBER(TRIM(CASE WHEN trim(BACK_C1) IS NULL THEN 0 ELSE BACK_C1 END))  as BACK_C1,t2.mat_code,t2.ID_2A,t2.PROC_COUNT,t2.WEIGH_NO,t2.LOT_NO,t2.QUALITY_BATCH_NO,t2.DEVO_TIME,t2.DEVO_WT,t1.HANDLE_DIV,t2.STK_NO,t2.CHARGE_TYPE "
 				" from tmmsmgy06 t1 left join tmmsm2a_yl t2 on t1.dev_code = t2.dev_code and t1.l2_proc_no=t2.l2_proc_no"
 				" where 1=1"
 				" and substr(t1.dev_code,1,1) not in ('F','R','S','V')"
@@ -211,10 +261,27 @@ int f_mmsm_gyupd(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn)
 			cmd_inq.ExecuteNonQuery();
 			cmd_inq.Close();
 
+// DM8 适配 CHANGE-161:写入/查询 TMMSMGY08。空值搜索 DECODE 改为标准 CASE。
+// 改写原因：空值搜索 DECODE 改为标准 CASE,不依赖 NULL 相等匹配的未记载语义；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+			// sqlstr = " insert into tmmsmgy08(REC_CREATOR,REC_CREATE_TIME,sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,mat_code,ID_2A,PROC_COUNT,WEIGH_NO,QUALITY_BATCH_NO,LOT_NO,DEVO_TIME,DEVO_WT,HANDLE_DIV,STK_NO,CHARGE_TYPE)"
+				// " select @rec_creator,@rec_create_time,sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,mat_code,ID_2A,PROC_COUNT,WEIGH_NO,QUALITY_BATCH_NO,LOT_NO,DEVO_TIME,round(sum(DEVO_WT* CASE WHEN BACK_C1 > 0 THEN (BACK_C1*0.01) ELSE 1 / HEAT_COUNT  END),0) DEVO_WT,NVL(trim(HANDLE_DIV),'I'),STK_NO,CHARGE_TYPE"
+				// " from ("
+				// " select t1.sm_plan_nol2,t1.heat_no,t1.l2_proc_no,t1.proc_no,t1.dev_code,decode(t1.HEAT_COUNT,0,1,t1.HEAT_COUNT) HEAT_COUNT,TO_NUMBER(TRIM(decode(trim(BACK_C1),null,0,BACK_C1)))  as BACK_C1,t2.mat_code,t2.ID_2A,t2.PROC_COUNT,t2.WEIGH_NO,t2.QUALITY_BATCH_NO,t2.LOT_NO,t2.DEVO_TIME,t2.DEVO_WT,t1.HANDLE_DIV,t2.STK_NO,t2.CHARGE_TYPE "
+				// " from tmmsmgy06 t1 left join tmmsm2a_yl t2 on substr(t1.dev_code,1,1) = substr(t2.dev_code,1,1) and t1.l2_proc_no=t2.l2_proc_no"
+				// " where 1=1"
+				// " and substr(t1.dev_code,1,1) in ('F','R','S','V')"
+				// " and nvl(DEVO_WT,0)!=0"
+				// " and  t1.heat_no= @heat_no"
+				// ")"
+				// " group by  sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,mat_code,ID_2A,PROC_COUNT,WEIGH_NO,QUALITY_BATCH_NO,LOT_NO,DEVO_TIME,STK_NO,CHARGE_TYPE,NVL(trim(HANDLE_DIV),'I')"
+				// ;
+// DM8 SQL：
 			sqlstr = " insert into tmmsmgy08(REC_CREATOR,REC_CREATE_TIME,sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,mat_code,ID_2A,PROC_COUNT,WEIGH_NO,QUALITY_BATCH_NO,LOT_NO,DEVO_TIME,DEVO_WT,HANDLE_DIV,STK_NO,CHARGE_TYPE)"
 				" select @rec_creator,@rec_create_time,sm_plan_nol2,heat_no,l2_proc_no,PROC_NO,dev_code,mat_code,ID_2A,PROC_COUNT,WEIGH_NO,QUALITY_BATCH_NO,LOT_NO,DEVO_TIME,round(sum(DEVO_WT* CASE WHEN BACK_C1 > 0 THEN (BACK_C1*0.01) ELSE 1 / HEAT_COUNT  END),0) DEVO_WT,NVL(trim(HANDLE_DIV),'I'),STK_NO,CHARGE_TYPE"
 				" from ("
-				" select t1.sm_plan_nol2,t1.heat_no,t1.l2_proc_no,t1.proc_no,t1.dev_code,decode(t1.HEAT_COUNT,0,1,t1.HEAT_COUNT) HEAT_COUNT,TO_NUMBER(TRIM(decode(trim(BACK_C1),null,0,BACK_C1)))  as BACK_C1,t2.mat_code,t2.ID_2A,t2.PROC_COUNT,t2.WEIGH_NO,t2.QUALITY_BATCH_NO,t2.LOT_NO,t2.DEVO_TIME,t2.DEVO_WT,t1.HANDLE_DIV,t2.STK_NO,t2.CHARGE_TYPE "
+				" select t1.sm_plan_nol2,t1.heat_no,t1.l2_proc_no,t1.proc_no,t1.dev_code,decode(t1.HEAT_COUNT,0,1,t1.HEAT_COUNT) HEAT_COUNT,TO_NUMBER(TRIM(CASE WHEN trim(BACK_C1) IS NULL THEN 0 ELSE BACK_C1 END))  as BACK_C1,t2.mat_code,t2.ID_2A,t2.PROC_COUNT,t2.WEIGH_NO,t2.QUALITY_BATCH_NO,t2.LOT_NO,t2.DEVO_TIME,t2.DEVO_WT,t1.HANDLE_DIV,t2.STK_NO,t2.CHARGE_TYPE "
 				" from tmmsmgy06 t1 left join tmmsm2a_yl t2 on substr(t1.dev_code,1,1) = substr(t2.dev_code,1,1) and t1.l2_proc_no=t2.l2_proc_no"
 				" where 1=1"
 				" and substr(t1.dev_code,1,1) in ('F','R','S','V')"

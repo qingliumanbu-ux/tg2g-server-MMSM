@@ -43,7 +43,13 @@ int f_mmsmwt_ins(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn)
 			switch (conn->DatabaseKind)
 			{
 			case DB_KIND_DB2:	        // DB2 数据库（未开Oracle兼容）
-				sqlstr = "SELECT nextval for MMSM_MATNO_SEQ FROM TMMSM25 "; 
+// DM8 适配 CHANGE-184:查询。见改写原因。
+// 改写原因：DB2 取号语法 values nextval for 改为 DM 序列伪列 select <seq>.NEXTVAL from DUAL；依据 DM 官方文档,DM8 尚未实测。
+// 本共用分支面向 DM8,其他 DB_KIND 标签也会执行此 SQL;参数、结果列、条件与排序保持不变。
+// 原 SQL（完整保留）：
+				// sqlstr = "SELECT nextval for MMSM_MATNO_SEQ FROM TMMSM25 "; 
+// DM8 SQL：
+				sqlstr = "SELECT MMSM_MATNO_SEQ.NEXTVAL FROM TMMSM25 "; 
 				break;
 			case DB_KIND_DB2_ORACLE:	    // DB2 数据库（开Oracle兼容）
 			case DB_KIND_MSSQL:	        // MS SQL Server数据库

@@ -93,7 +93,12 @@ int f_mmsm81(EIClass * bcls_rec, EIClass * bcls_ret, CDbConnection * conn)
 	{
 		datetime = CDateTime::Now().ToString("yyyyMMddHHmmss");
 
-		CDbCommand getSeq("SELECT MMSM_MATNO_SEQ.NEXTVAL  FROM SYSIBM.SYSDUMMY1", conn);
+		// DM8 适配 CHANGE-187:取序列 MMSM_MATNO_SEQ.NEXTVAL;SYSIBM 辅助表改 DUAL(内联语句)。
+		// 改写原因:DM 支持 DUAL 辅助表与序列伪列(官方文档);DM8 尚未实测。
+		// 原 SQL(完整保留):
+		// CDbCommand getSeq("SELECT MMSM_MATNO_SEQ.NEXTVAL  FROM SYSIBM.SYSDUMMY1", conn);
+		// DM8 SQL：
+		CDbCommand getSeq("SELECT MMSM_MATNO_SEQ.NEXTVAL  FROM DUAL", conn);
 		CString newSeqNo = "0000" + getSeq.ExecuteScalar().ToString().Trim();
 		newSeqNo = newSeqNo.Substring(newSeqNo.GetLength() - 4);
 		//Log::Trace("", "", "newSeqNo=[{0}]", newSeqNo);
